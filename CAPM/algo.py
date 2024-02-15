@@ -97,12 +97,12 @@ class Algo:
             elif self.last_prices[ticker] * (1 + capm) + 0.02 <= highest_bid:
                 self.place_order(ticker, 125, "SELL")
                 self.portfolio[ticker].append({"STATUS": "SELL", "PRICE": highest_bid})
-            if util.unrealized_pft(self.session)[ticker] >= 10000 or util.unrealized_pft(self.session)[ticker] <= -10000:
-                    while util.get_position(self.session, ticker) > 100:
-                        util.place_mkt_sell_order(self.session, ticker, 100)
+            if util.unrealized_pft(self.session)[ticker] >= 2500:
+                    while util.get_position(self.session, ticker) > 1000:
+                        util.place_mkt_sell_order(self.session, ticker, 600)
                         sleep(0.1)
                     while util.get_position(self.session, ticker) < -1000:
-                        util.place_mkt_buy_order(self.session, ticker, 100)
+                        util.place_mkt_buy_order(self.session, ticker, 600)
                         sleep(0.1)
 
     def calculate_new_beta(self):
@@ -111,7 +111,7 @@ class Algo:
             model = sm.OLS(self.returns[ticker], X)
             results = model.fit()
             new_beta_estimate = results.params[1]
-            self.tickers[ticker]["BETA"] = new_beta_estimate
+            self.tickers[ticker]["BETA"] = 0.5 * new_beta_estimate + 0.5 * self.tickers[ticker]["BETA"]
 
 
 
@@ -119,13 +119,12 @@ def main():
     algo = Algo()
     algo.start_session()
     tick = util.get_tick(algo.session)
-
     while tick >= 1 and tick <= 10:
         algo.update_returns()
         algo.calculate_new_beta()
         tick = util.get_tick(algo.session)
 
-    while tick > 10 and tick <= 340:
+    while tick > 10 and tick <= 600:
         algo.update_returns()
         algo.calculate_new_beta()
         algo.evaluate_value()

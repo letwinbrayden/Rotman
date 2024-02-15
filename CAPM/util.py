@@ -107,49 +107,6 @@ def place_mkt_sell_order(session, ticker, qty):
     res = session.post(f'http://localhost:9999/v1/orders?ticker={ticker}&type=MARKET&quantity={qty}&action=SELL')
     #print(res.json())
 
-
-
-
-
-session = open_session()
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.animation import FuncAnimation
-
-class LiveStockPlot:
-    def __init__(self, stock_names, current_prices, interval=1000):
-        self.stock_names = stock_names
-        self.current_prices = current_prices
-        self.time = 0
-        self.prices = {stock_name: [price] for stock_name, price in zip(stock_names, current_prices)}
-        self.fig, self.ax = plt.subplots()
-        self.lines = {stock_name: self.ax.plot([], [], label=stock_name)[0] for stock_name in stock_names}
-        self.ax.set_xlabel('Time')
-        self.ax.set_ylabel('Price')
-        self.ax.set_title('Live Plot of Stocks')
-        self.ax.set_ylim(-100, 5000)
-        self.animation = FuncAnimation(self.fig, self.update_plot, interval=interval)
-
-    def update_plot(self, frame):
-        self.time += 1
-        prices = get_prices(session)
-        for stock_name, current_price in zip(self.stock_names, self.current_prices):
-            self.prices[stock_name].append(prices[stock_name])  # Simulating price movement
-            self.lines[stock_name].set_data(range(self.time + 1), self.prices[stock_name])
-        self.ax.relim()
-        self.ax.autoscale_view()
-        return list(self.lines.values())
-
-    def start(self):
-        plt.legend()
-        plt.show()
-
-# Example usage
-stock_names = ['RITM', 'ALPHA', 'GAMMA', 'THETA']
-current_prices = get_prices(session)  # Replace these with the actual current prices of the stocks
-live_plot = LiveStockPlot(stock_names, [current_prices["RITM"], current_prices["ALPHA"] ,current_prices["GAMMA"] ,current_prices["THETA"]])
-live_plot.start()
-
 def main():
     pass
 if __name__ == "__main__":
