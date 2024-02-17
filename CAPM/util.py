@@ -108,6 +108,6 @@ def place_mkt_sell_order(session, ticker, qty):
     #print(res.json())
 
 def main():
-    pass
+    print()
 if __name__ == "__main__":
     main()

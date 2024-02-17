@@ -72,9 +72,8 @@ def main():
             algo.update_pricing(ticker)
             print("Ask: $ {}".format(algo.ticker_asks[ticker]))
             print("Bid: $ {}".format(algo.ticker_bids[ticker]))
-            last_price = algo.
-            print('\n' + "Percent Change (5 ticks): {}".format(util.calculate_percent_change()))
-            print('\n' + "Percent Change (10 ticks): {}".format(util.calculate_percent_change()))
+            print('\n' + "Percent Change (5 ticks): {}".format())
+            print('\n' + "Percent Change (10 ticks): {}".format())
             print('\n' + "Percent Change (20 ticks): {}".format())
         sleep(1)
         tick = util.get_tick(algo.session)
