@@ -12,7 +12,7 @@ class ApiException(Exception):
 def signal_handler(signum, frame):
     """Handle interrupt signals."""
     global shutdown
-    signal.signal(signal.SIGINT, signal.SIG_DFL)  # Reset default signal handler
+    signal.signal(signal.SIGINT, signal.SIG_DFL) 
     shutdown = True
 
 def get_temperature_forecast(session):
@@ -28,12 +28,15 @@ def calculate_expected_demand(temperature):
 
 def get_parse_news(news):
     """"Parse the news"""
+    t = [0]
     for n in news:
+        n = n['body']
         if "between" in n:
             temperatures = re.findall(r'\b\d+\b', n)
             temperatures = [int(temp) for temp in temperatures]
+            t.append((temperatures[0]+temperatures[1])/2)
+        return t[-1]
         
-        return (temperatures[0]+temperatures[1])/2
 
 
 def main():
@@ -46,16 +49,16 @@ def main():
         try:
             temperature_forecast = get_temperature_forecast(session)
             parse_news = get_parse_news(temperature_forecast)
-
+            
             expected_demand = calculate_expected_demand(parse_news)
-            print("expected demand:" + expected_demand)
+            print("expected_demand: "+str(expected_demand))
             
             
         except ApiException as e:
             print(f"API Error: {e}")
-            break  # Exit loop on API error
+            break 
         
-        sleep(60)  # Wait for a minute before next cycle
+        sleep(5) 
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
