@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 def open_session():
-    API_KEY = {'X-API-key': '91V2OTC7'}
+    API_KEY = {'X-API-key': 'T82ZYDGY'}
     session = requests.Session()
     session.headers.update(API_KEY)
     return session
@@ -71,9 +71,9 @@ def get_prices(session):
 def unrealized_pft(session):
     response = session.get('http://localhost:9999/v1/securities')
     securities = response.json()
-    unrealized_pft = {}
+    unrealized_pft = []
     for security in securities:
-        unrealized_pft[security['ticker']] = security['unrealized']
+        unrealized_pft.append(security['unrealized'])
     return unrealized_pft
 
 def remove_closed_orders(orders):
@@ -108,6 +108,7 @@ def place_mkt_sell_order(session, ticker, qty):
     #print(res.json())
 
 def main():
-    print()
+    session = open_session()
+    print(get_prices(session))
 if __name__ == "__main__":
     main()

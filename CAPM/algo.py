@@ -1,7 +1,9 @@
 import util
 import statsmodels.api as sm
 import numpy as np
+import pandas as pd
 from time import sleep
+import re
 
 class Algo:
 
@@ -17,6 +19,8 @@ class Algo:
         self.returns = {"ALPHA": [], "GAMMA": [], "THETA": []}
         self.last_prices = {"ALPHA": -1, "GAMMA": -1, "THETA": -1}
         self.portfolio = {"ALPHA": [], "GAMMA": [], "THETA": []}
+        self.future_tick = -1
+        self.future_market_value = -1
 
     def start_session(self):
         print("Session Not Active.")
@@ -24,33 +28,32 @@ class Algo:
             tick = util.get_tick(self.session)
             if tick >= 1:
                 info = util.get_news(self.session)[-1]
-                info = info['body'].split()
-                self.riskfree = float(info[11].replace("%.", "")) / 100
-                self.tickers['ALPHA']['BETA'] = float(info[31])
-                self.tickers['GAMMA']['BETA'] = float(info[34])
-                self.tickers['THETA']['BETA'] = float(info[37])
+                info = info['body']
+                self.tickers['ALPHA']['BETA'], self.tickers['GAMMA']['BETA'], self.tickers['THETA']['BETA'] = self.extract_numbers(info)[2:]
                 self.news = info
                 print("Session Active.")
                 return
+    
+    def extract_numbers(self, input_string):
+        pattern = r'-?\d+\.?\d*'
+        return [float(match) if '.' in match else int(match) for match in re.findall(pattern, input_string)]
 
     def update_news(self):
         news = util.get_news(self.session)
         if news != self.news:
             self.news = news
-            data = self.news[0]['body'].split()
-            tick = int(data[6].replace(",",""))
-            index_value = float(data[16][1:].replace(".",""))
-            return [True, tick, index_value]
-        return [False]
+            info = self.extract_numbers(self.news[0]['body'])
+            self.future_tick = info[0]
+            self.future_market_value = info[1]
     
     def update_returns(self):
         prices = util.get_prices(self.session)
         if self.index_last_price == -1:
             self.index_returns.append(0)
         else:
-            self.index_returns.append((prices["RITM"] - self.index_last_price) / self.index_last_price * 100)
+            self.index_returns.append((prices["RITM"] - self.index_last_price) / self.index_last_price)
         self.index_last_price = prices["RITM"]
-        if len(self.index_returns) >= 500:
+        if len(self.index_returns) >= 100:
             self.index_returns.pop(0)
 
         for ticker in self.tickers:
@@ -59,17 +62,17 @@ class Algo:
             else:
                 self.returns[ticker].append((prices[ticker] - self.last_prices[ticker]) / self.last_prices[ticker])
             self.last_prices[ticker] = prices[ticker]
-            if len(self.returns[ticker]) >= 500:
+            if len(self.returns[ticker]) >= 100:
                 self.returns[ticker].pop(0)
         return
         
     def place_order(self, ticker, qty, trade_decision):
         orders_placed = 0
-        while trade_decision == 'BUY' and orders_placed < 7:
+        while trade_decision == 'BUY' and orders_placed < 10:
             util.place_mkt_buy_order(self.session, ticker, qty)
             orders_placed += 1
             sleep(0.1)
-        while trade_decision == 'SELL' and orders_placed < 7:
+        while trade_decision == 'SELL' and orders_placed < 10:
             util.place_mkt_sell_order(self.session, ticker, qty)
             orders_placed += 1
             sleep(0.1)
@@ -83,37 +86,52 @@ class Algo:
         return expected_return
     
     def calculate_value(self, ticker, market_return):
-        return self.riskfree + (self.tickers[ticker]["BETA"] * (market_return - self.riskfree))
+        return (self.tickers[ticker]["BETA"] * market_return)
+        
+    def clear_position(self, stock = None):
+        print('clearing pos')
+        for ticker in self.tickers:
+            while util.get_position(self.session, ticker) > 0:
+                util.place_mkt_sell_order(self.session, ticker, 10000)
+                sleep(0.1)
+            while util.get_position(self.session, ticker) < 0:
+                util.place_mkt_buy_order(self.session, ticker, 10000)
+                sleep(0.1)
+
+    def clear_neg_position(self, stock = None):
+        if stock == None:
+            for ticker in self.tickers:
+                position = util.get_position(self.session, ticker)
+                while position < 0:
+                    util.place_mkt_buy_order(self.session, ticker, 10000)
+                    position = util.get_position(self.session, ticker)
+        else:
+            ticker = stock
+            position = util.get_position(self.session, ticker)
+            while position < 0:
+                util.place_mkt_buy_order(self.session, ticker, 10000)
+                position = util.get_position(self.session, ticker)
     
-    def evaluate_value(self):
+    def clear_pos_position(self, stock = None):
+        if stock == None:
+            for ticker in self.tickers:
+                position = util.get_position(self.session, ticker)
+                while position > 0:
+                    util.place_mkt_sell_order(self.session, ticker, 10000)
+                    position = util.get_position(self.session, ticker)
+        else:
+            ticker = stock
+            position = util.get_position(self.session, ticker)
+            while position > 0:
+                util.place_mkt_sell_order(self.session, ticker, 10000)
+                position = util.get_position(self.session, ticker)
+    
+    def calculate_beta(self):
         for ticker in self.tickers:
-            bids, highest_bid = util.get_bid_orders(self.session, ticker)
-            asks, lowest_ask = util.get_ask_orders(self.session, ticker)
-            market_return = self.calculate_market_return()
-            capm = self.calculate_value(ticker, market_return)
-            if self.last_prices[ticker] * (1 + capm) - 0.02 >= lowest_ask:
-                self.place_order(ticker, 125, "BUY")
-                self.portfolio[ticker].append({"STATUS": "BUY", "PRICE": lowest_ask})
-            elif self.last_prices[ticker] * (1 + capm) + 0.02 <= highest_bid:
-                self.place_order(ticker, 125, "SELL")
-                self.portfolio[ticker].append({"STATUS": "SELL", "PRICE": highest_bid})
-            if util.unrealized_pft(self.session)[ticker] >= 2500:
-                    while util.get_position(self.session, ticker) > 1000:
-                        util.place_mkt_sell_order(self.session, ticker, 600)
-                        sleep(0.1)
-                    while util.get_position(self.session, ticker) < -1000:
-                        util.place_mkt_buy_order(self.session, ticker, 600)
-                        sleep(0.1)
-
-    def calculate_new_beta(self):
-        for ticker in self.tickers:
-            X = sm.add_constant(self.index_returns)
-            model = sm.OLS(self.returns[ticker], X)
-            results = model.fit()
-            new_beta_estimate = results.params[1]
-            self.tickers[ticker]["BETA"] = 0.5 * new_beta_estimate + 0.5 * self.tickers[ticker]["BETA"]
-
-
+            covariance = np.cov(self.returns[ticker], self.index_returns)[0, 1]
+            market_variance = np.var(self.index_returns)
+            self.tickers[ticker]["BETA"] = covariance / market_variance
+            print(self.tickers[ticker]["BETA"])
 
 def main():
     algo = Algo()
@@ -121,15 +139,28 @@ def main():
     tick = util.get_tick(algo.session)
     while tick >= 1 and tick <= 10:
         algo.update_returns()
-        algo.calculate_new_beta()
         tick = util.get_tick(algo.session)
+        sleep(0.5)
 
+    big_tick = 10
     while tick > 10 and tick <= 600:
         algo.update_returns()
-        algo.calculate_new_beta()
-        algo.evaluate_value()
+        algo.update_news()
+        if algo.future_tick != big_tick:
+            big_tick = algo.future_tick
+            if algo.future_market_value > util.get_prices(algo.session)['RITM']:
+                algo.clear_neg_position()
+                for ticker in ["ALPHA"]:
+                    algo.place_order(ticker, 10000, "BUY")
+            elif algo.future_market_value < util.get_prices(algo.session)['RITM']:
+                algo.clear_pos_position()
+                for ticker in ["ALPHA"]:
+                    algo.place_order(ticker, 10000, "SELL")
+        if sum(util.unrealized_pft(algo.session)) >= 250000:
+            algo.clear_position()
+            algo.clear_position() 
+        print(algo.future_tick, tick)
+        algo.calculate_beta()
         tick = util.get_tick(algo.session)
-
-
-        
+        sleep(0.5) 
 main()
