@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from traceback import format_exc
-from market_making.ritc import *
+from ritc import *
 import requests
 from time import sleep
 import sys
@@ -25,11 +25,11 @@ def submit_limit_order(ticker, order_type, price, quantity):
     :param price: Price at which to place the order.
     :param quantity: Quantity of shares to trade.
     """
-    order_action = ritc.Order.Action.BUY if order_type == 'bid' else ritc.Order.Action.SELL
+    order_action = Order.Action.BUY if order_type == 'bid' else Order.Action.SELL
     try:
         order = rit_client.post_orders(
             ticker=ticker,
-            type=ritc.Order.Type.LIMIT,
+            type=Order.Type.LIMIT,
             quantity=quantity,
             action=order_action,
             price=price
