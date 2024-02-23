@@ -1,15 +1,14 @@
 from concurrent.futures import ThreadPoolExecutor
 from traceback import format_exc
 from market_making.ritc import *
-
 import requests
 from time import sleep
 import sys
 import json
 import signal
+import random  # Import the random module
 
 X_API_KEY = 'FPPGZ41T'
-MIN_SPREAD = 0.07
 
 # handles shutdown when CTRL+C is pressed
 def signal_handler(signum, frame):
@@ -30,6 +29,9 @@ def make_market(rit, ticker):
         bid = book.bids[0].price
         ask = book.asks[0].price
         spread = ask - bid
+
+        # Random spread between 7 cents and 9 cents
+        MIN_SPREAD = random.uniform(0.07, 0.09)  # *****random spread, 6 to 9 cents
 
         #automatic private tender offer *MOST IMPORTANT
 
@@ -129,6 +131,54 @@ def handle_tenders(rit):
             except Exception as e:
                 print(f"Error declining tender {tender['tender_id']}: {e}")
 
+"""
+limit order function for a certain price, sleep for a little as possible
+"""
+
+#brayden down
+def submit_limit_order(ticker, order_type, price, quantity):
+    """
+    Submits a limit order.
+    
+    :param ticker: Ticker symbol of the security.
+    :param order_type: 'ask' for selling, 'bid' for buying.
+    :param price: Price at which to place the order.
+    :param quantity: Quantity of shares to trade.
+    """
+    order_action = ritc.Order.Action.BUY if order_type == 'bid' else ritc.Order.Action.SELL
+    try:
+        order = rit_client.post_orders(
+            ticker=ticker,
+            type=ritc.Order.Type.LIMIT,
+            quantity=quantity,
+            action=order_action,
+            price=price
+        )
+        print(f"Limit order submitted: {order}")
+    except Exception as e:
+        print(f"Error submitting limit order: {e}")
+
+def calculate_and_submit_orders(ticker_symbol, spread, quantity):
+    """
+    Calculates and submits limit orders based on the given ticker's bid and ask prices.
+    
+    :param ticker_symbol: Ticker symbol of the security.
+    :param spread: Minimum spread to consider for placing orders.
+    :param quantity: Quantity of shares to trade.
+    """
+    # Fetch current bid and ask prices
+    ticker_data = rit_client.get_securities(ticker=ticker_symbol)
+    ask = ticker_data.ask
+    bid = ticker_data.bid
+    mid = (ask + bid) / 2
+
+    # Check if the conditions are met
+    if (ask - mid) / 2 >= 0.01 and (mid - bid) / 2 >= 0.01:
+        if (ask - bid) > spread:
+            # Submit ask and bid limit orders
+            submit_limit_order(ticker_symbol, 'ask', (ask + mid) / 2, quantity)
+            submit_limit_order(ticker_symbol, 'bid', (bid + mid) / 2, quantity)
+#brayden up
 
 def main():
     rit = RIT(X_API_KEY)
