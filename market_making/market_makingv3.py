@@ -16,7 +16,27 @@ def signal_handler(signum, frame):
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     shutdown = True
 
-# ... [Other functions like submit_limit_order remain the same] ...
+def submit_limit_order(ticker, order_type, price, quantity):
+    """
+    Submits a limit order.
+    
+    :param ticker: Ticker symbol of the security.
+    :param order_type: 'ask' for selling, 'bid' for buying.
+    :param price: Price at which to place the order.
+    :param quantity: Quantity of shares to trade.
+    """
+    order_action = ritc.Order.Action.BUY if order_type == 'bid' else ritc.Order.Action.SELL
+    try:
+        order = rit_client.post_orders(
+            ticker=ticker,
+            type=ritc.Order.Type.LIMIT,
+            quantity=quantity,
+            action=order_action,
+            price=price
+        )
+        print(f"Limit order submitted: {order}")
+    except Exception as e:
+        print(f"Error submitting limit order: {e}")
 
 def fetch_current_price(rit, ticker):
     """
