@@ -21,6 +21,13 @@ API_KEY = "your_api_key_here"  # Replace with your actual API key
 # Headers for the HTTP requests
 HEADERS = {"X-API-Key": API_KEY}
 
+def list_securities():
+    """List all available securities."""
+    response = send_request("GET", "securities")
+    for security in response:
+        print(f"{security['ticker']}: {security['description']}")
+
+
 def send_request(method, endpoint, params=None, data=None):
     """Send an HTTP request to the RIT Client API."""
     url = f"{BASE_URL}/{endpoint}"
@@ -79,6 +86,9 @@ def main():
     elif command == "cancel_all":
         response = cancel_all_orders()
         print(json.dumps(response, indent=2))
+
+    elif command == "list_securities":
+        list_securities()
     else:
         print("Unknown command")
 
