@@ -76,7 +76,35 @@ def handle_tender_offers(rit):
         except Exception as e:
             print(f"Error handling tender offer for {tender.ticker}: {e}")
 
-# ... [Rest of the calculate_and_submit_orders function and other parts remain unchanged] ...
+def calculate_and_submit_orders(rit, ticker):
+    while rit.get_case().status == Case.Status.ACTIVE:
+        security = rit.get_securities(ticker=ticker)[0]
+        position = security.position
+        max_trade_size = security.max_trade_size
+        book = rit.get_securities_book(ticker=ticker, limit=1)
+
+        if not book.bids or not book.asks:
+            continue
+
+        bid = book.bids[0].price
+        ask = book.asks[0].price
+        spread = ask - bid
+
+        # Random spread between 7 cents and 9 cents
+        MIN_SPREAD = random.uniform(0.07, 0.09)
+
+        if spread < MIN_SPREAD:
+            continue
+
+        bid_quantity = min(max_trade_size, max_trade_size - position)
+        ask_quantity = min(max_trade_size, max_trade_size + position)
+
+        if bid_quantity > 0:
+            submit_limit_order(ticker, 'bid', bid, bid_quantity)
+
+        if ask_quantity > 0:
+            submit_limit_order(ticker, 'ask', ask, ask_quantity)
+
 
 def main():
     rit = RIT(X_API_KEY)
