@@ -43,24 +43,11 @@ def make_market(rit, ticker):
         
         """
             every time i get a tender offer, 
-
-
-
                 consider
-
                 put a bunch of limit orders, like the commodities chimp strat
-
-
                 try the chimp strat like the commodities case, limit order
-
-
-
                         be unpredicable, other ppl will know everything by the book, they try to profit off ur mistakes, so be random constants and be unpredictable
-
                     liquid everything after every 6 ticks, cancel position on everything to 0
-
-
-                    
         """
 
         if spread < MIN_SPREAD:
