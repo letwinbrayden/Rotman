@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from traceback import format_exc
-from rit import *
+from market_making.ritc import *
 
 import requests
 from time import sleep
