@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from traceback import format_exc
-from market_making.ritc import *  # Ensure this import is correct based on your project structure
+from ritc import *  # Ensure this import is correct based on your project structure
 import requests
 from time import sleep
 import sys
