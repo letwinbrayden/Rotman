@@ -3,8 +3,6 @@ import requests
 import json
 from time import sleep
 import sys
-import optionprice
-from optionprice import Option
 import re
 import math
 import py_vollib 
@@ -21,7 +19,7 @@ from py_lets_be_rational.exceptions import AboveMaximumException
 
 #========================================SETTINGS========================================
 
-API_KEY = {'X-API-key': 'DV2931GT'} # Save your API key for easy access.
+API_KEY = {'X-API-key': 'Q8RYICSY'} # Save your API key for easy access.
 BASE_URL = 'http://localhost:9999/v1/'
 shutdown = False
 
@@ -513,10 +511,10 @@ def parse_esitmate(session : requests.Session):
 	if( payload[0]["news_id"] % 2 == 0):
 		raise Exception("ERROR: Most recent news not a volatility annoucement")
 	else: 
-		low = int(nth_word(payload[0]["body"], 11)[:-1])
+		low = int(nth_word(payload[0]["body"], 11)[:-1].strip("%"))
 		if low < 15:
 			low = 15
-		high = int(nth_word(payload[0]["body"], 13)[:-1])
+		high = int(nth_word(payload[0]["body"], 13)[:-1].strip("%"))
 		if high > 29:
 			high = 29
 
@@ -534,6 +532,20 @@ def parse_announcemnt(session : requests.Session):
 		print("{} parsed. Volatility: {}".format(payload[0]["headline"],int(nth_word(payload[0]["body"], 8)[:-1])))
 		last_news_id = payload[0]["news_id"]
 		return (last_news_id,float(nth_word(payload[0]["body"], 8)[:-1]))
+
+
+def calculate_profit(session):
+
+	total = 0
+		
+	securities = api_get(session,"securities")
+	
+	for security in securities:
+		total += security['unrealized']
+	
+	return total
+    	
+    			
 
 #========================================== MAIN ==========================================
 
@@ -600,7 +612,7 @@ def main():
 		#Flags Informing us of a new estimate
 		new_estimate = False
 		new_annoucement = False
-
+		stop_amount = 45000
 		last_period = 1
 		prev_tick = current_tick
 
@@ -613,6 +625,57 @@ def main():
 
 		# MAIN LOOP
 		while(True):
+
+			flag = False
+			profit = calculate_profit(s)
+			if profit >= stop_amount:
+				secs = api_get(s,"securities")
+				for sec in secs:
+					vol = sec['position']
+					if sec['ticker'] == 'RTM':
+						if vol < 0:
+							while vol < 0:
+								if vol < 10000:
+									amnt = 10000
+								else:
+									amnt = vol
+								print("testinnggg")
+								api_post(s,"orders", ticker = "RTM", type = "MARKET", quantity = amnt, action = "BUY" )
+								sleep(0.1)
+								vol += amnt
+						elif vol > 0:
+							while vol > 0:
+								if vol > 10000:
+									amnt = 10000
+								else:
+									amnt = vol
+								api_post(s,"orders", ticker = "RTM", type = "MARKET", quantity = amnt, action = "SELL" )
+								sleep(0.1)
+								vol -= amnt
+					else:
+						if vol < 0:
+							while vol < 0:
+								if vol < 10000:
+									amnt = 10000
+								else:
+									amnt = vol
+								api_post(s,"orders", ticker = sec["ticker"], type = "MARKET", quantity = amnt, action = "BUY" )
+								sleep(0.1)
+								vol += amnt
+						elif vol > 0:
+							while vol > 0:
+								if vol > 10000:
+									amnt = 10000
+								else:
+									amnt = vol
+								api_post(s,"orders", ticker = sec["ticker"], type = "MARKET", quantity = amnt, action = "SELL" )
+								sleep(0.1)
+								vol -= amnt
+				print("END")
+				flag = True
+
+			if flag:
+				break
 			total_current_delta = 0
 			# update time
 			current_tick,current_period = update_time(s)
