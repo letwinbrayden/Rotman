@@ -8,7 +8,7 @@ import sys
 import json
 import signal
 
-X_API_KEY = '78DZHH2V'
+X_API_KEY = 'FPPGZ41T'
 MIN_SPREAD = 0.07
 
 # handles shutdown when CTRL+C is pressed
@@ -31,11 +31,44 @@ def make_market(rit, ticker):
         ask = book.asks[0].price
         spread = ask - bid
 
+        #automatic private tender offer *MOST IMPORTANT
+
+        # every order or every few orders, reassign my spread number to be something else
+        # 0.3 to 0.8 maybe..., dont keep it a constant
+        # currencies
+            # either entirely avoid. or work more deeply to improve handling currency orders
+            #currency is 
+        
+        """
+            every time i get a tender offer, 
+
+
+
+                consider
+
+                put a bunch of limit orders, like the commodities chimp strat
+
+
+                try the chimp strat like the commodities case, limit order
+
+
+
+                        be unpredicable, other ppl will know everything by the book, they try to profit off ur mistakes, so be random constants and be unpredictable
+
+                    liquid everything after every 6 ticks, cancel position on everything to 0
+
+
+                    
+        """
+
         if spread < MIN_SPREAD:
             continue
 
         bid_quantity = min(max_trade_size, max_trade_size - position)
         ask_quantity = min(max_trade_size, max_trade_size + position)
+        # make bid_quantity == ask_quantity?
+
+        # min(max_trade_size, )
 
         if bid_quantity > 0:
             rit.post_commands_cancel(

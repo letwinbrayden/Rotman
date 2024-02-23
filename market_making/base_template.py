@@ -15,7 +15,7 @@ def signal_handler(signum, frame):
     shutdown = True
 
 # Set your API key to authenticate to the RIT client
-API_KEY = {'X-API-Key': 'XC904YR5'}
+API_KEY = {'X-API-Key': 'FPPGZ41T'}
 shutdown = False
 
 # SETTINGS

@@ -1,5 +1,5 @@
 import requests # step 1
-API_KEY = {'X-API-key': '78DZHH2V'} # step 2
+API_KEY = {'X-API-key': 'FPPGZ41T'} # step 2
 def main():
     with requests.Session() as s: # step 3
         s.headers.update(API_KEY) # step 4
